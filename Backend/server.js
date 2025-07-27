@@ -25,14 +25,6 @@ connectDB();
 app.use('/api/employees', employeeRoutes);
 app.use('/api/leaves', employeeLeaveRoutes);
 
-// Serve React frontend
-const __dirname = path.resolve();
-app.use(express.static(path.join(__dirname, 'client/build')));
-
-
-app.get('*', (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
-});
 
 
 // Basic route

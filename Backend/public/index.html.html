@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Employee Leave Tracker - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .leave-card {
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+
+        .leave-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #4caf50;
+            color: white;
+            padding: 16px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+<div class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-3xl font-bold flex items-center gap-2">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Employee Leave Tracker - Admin Panel</span>
+            </h1>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Add Employee Section -->
+            <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+                <h2 class="text-xl font-bold mb-4 flex justify-between items-center">
+                    Add Employee
+                    <button id="addEmployeeBtn" class="text-indigo-600 hover:text-indigo-800" onclick="openAddEmployeeModal()">
+                        <i class="fas fa-plus-circle text-2xl"></i>
+                    </button>
+                </h2>
+            </div>
+
+            <!-- Employee Profiles Section -->
+            <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+                <h2 class="text-xl font-bold mb-4">Employee Profiles</h2>
+                <button id="showProfilesBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Show Employee Profiles</button>
+                <div id="employeeProfiles" class="space-y-4 mt-4 hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Employee cards will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Form Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 mt-8 fade-in">
+            <h2 class="text-xl font-bold mb-4">Employee Leave Form</h2>
+            <form id="leaveForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="leaveEmployeeId" class="block text-gray-700 font-medium mb-2">Employee ID</label>
+                        <input type="text" id="leaveEmployeeId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div>
+                        <label for="leaveEmployeeName" class="block text-gray-700 font-medium mb-2">Employee Name</label>
+                        <input type="text" id="leaveEmployeeName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div>
+                        <label for="leaveDate" class="block text-gray-700 font-medium mb-2">Leave Date</label>
+                        <input type="date" id="leaveDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div>
+                        <label for="leaveType" class="block text-gray-700 font-medium mb-2">Leave Type</label>
+                        <select id="leaveType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                            <option value="">Select Leave Type</option>
+                            <option value="casual">Casual Leave</option>
+                            <option value="sick">Sick Leave</option>
+                            <option value="personal">Personal Leave</option>
+                            <option value="half">Half Leave</option>
+                            <option value="overtime">Overtime</option>
+                            <option value="unpaid">Unpaid Leave</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Submit Leave Request</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Employee Detail Modal -->
+        <div id="employeeDetail" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl mx-4 overflow-y-auto max-h-screen">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold">Employee Profile</h2>
+                        <button onclick="document.getElementById('employeeDetail').classList.add('hidden')" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="border-b pb-4 mb-4">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-indigo-100 p-4 rounded-full">
+                                <i class="fas fa-user text-indigo-600 text-2xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold" id="detailEmployeeName"></h3>
+                                <p class="text-gray-600" id="detailEmployeeId"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Field</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeDetailBody">
+                            <!-- Employee details will be dynamically added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="toast hidden">Employee added successfully!</div>
+    </main>
+</div>
+
+<!-- Add Employee Modal -->
+<div id="addEmployeeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-md mx-4 p-6">
+        <h2 class="text-2xl font-bold mb-4">Add New Employee</h2>
+        <form id="modalAddEmployeeForm">
+            <div class="mb-4">
+                <label for="modalEmployeeId" class="block text-gray-700 font-medium mb-2">Employee ID</label>
+                <input type="text" id="modalEmployeeId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+            </div>
+            <div class="mb-4">
+                <label for="modalEmployeeName" class="block text-gray-700 font-medium mb-2">Employee Name</label>
+                <input type="text" id="modalEmployeeName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+            </div>
+            <div class="mb-4">
+                <label for="modalDepartment" class="block text-gray-700 font-medium mb-2">Department</label>
+                <input type="text" id="modalDepartment" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+            </div>
+            <div class="flex justify-end">
+                <button type="button" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition" onclick="document.getElementById('addEmployeeModal').classList.add('hidden')">Cancel</button>
+                <button type="submit" class="ml-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Add Employee</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const employees = [];
+
+    function openAddEmployeeModal() {
+        document.getElementById('addEmployeeModal').classList.remove('hidden');
+    }
+
+    document.getElementById('modalAddEmployeeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const employeeId = document.getElementById('modalEmployeeId').value.trim();
+        const employeeName = document.getElementById('modalEmployeeName').value.trim();
+        const department = document.getElementById('modalDepartment').value.trim();
+
+        // Check for duplicate Employee ID
+        const existingEmployee = employees.find(emp => emp.id === employeeId);
+        if (existingEmployee) {
+            alert('Employee ID already exists! Please use a unique ID.');
+            return;
+        }
+
+        const employee = {
+            id: employeeId,
+            name: employeeName,
+            department: department,
+            totalLeave: 14,
+            sickLeave: 0,
+            casualLeave: 0,
+            personalLeave: 0,
+            halfLeave: 0,
+            overtime: 0,
+            unpaidLeave: 0
+        };
+
+        employees.push(employee);
+        this.reset();
+        document.getElementById('addEmployeeModal').classList.add('hidden');
+        showToast('Employee added successfully!');
+    });
+
+    document.getElementById('showProfilesBtn').addEventListener('click', function() {
+        const profilesContainer = document.getElementById('employeeProfiles');
+        profilesContainer.innerHTML = ''; // Clear existing profiles
+        employees.forEach(employee => {
+            const profileDiv = document.createElement('div');
+            profileDiv.className = 'border p-6 rounded-xl shadow-md cursor-pointer leave-card hover:shadow-lg transition-all';
+            profileDiv.innerHTML = `
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="bg-indigo-100 p-3 rounded-full">
+                        <i class="fas fa-user text-indigo-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg">${employee.name}</h3>
+                        <p class="text-gray-600">ID: ${employee.id}</p>
+                    </div>
+                </div>
+                <div class="border-t pt-4">
+                    <p class="text-gray-700"><span class="font-medium">Department:</span> ${employee.department}</p>
+                    <p class="text-gray-700 mt-2"><span class="font-medium">Available Leave:</span> ${employee.totalLeave} days</p>
+                    <a href="#" onclick="showEmployeeDetail('${employee.id}')" class="mt-4 w-full inline-block px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-center">
+                        View Profile
+                    </a>
+                </div>
+            `;
+            profilesContainer.appendChild(profileDiv);
+        });
+        profilesContainer.classList.remove('hidden');
+    });
+
+    function showEmployeeDetail(employeeId) {
+        const employee = employees.find(emp => emp.id === employeeId);
+        if (employee) {
+            document.getElementById('detailEmployeeName').textContent = employee.name;
+            document.getElementById('detailEmployeeId').textContent = `ID: ${employee.id}`;
+            
+            const detailBody = document.getElementById('employeeDetailBody');
+            detailBody.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-bold text-gray-700 mb-2">Basic Information</h4>
+                        <p class="text-gray-600"><span class="font-medium">Department:</span> ${employee.department}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-bold text-gray-700 mb-2">Leave Balance</h4>
+                        <p class="text-indigo-600 font-medium">${employee.totalLeave} days remaining</p>
+                    </div>
+                </div>
+                
+                <h4 class="font-bold text-gray-700 mb-4 border-b pb-2">Leave Details</h4>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="bg-blue-50 p-3 rounded-lg">
+                        <p class="text-sm text-blue-700">Casual Leave</p>
+                        <p class="font-bold">${employee.casualLeave} days</p>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-lg">
+                        <p class="text-sm text-red-700">Sick Leave</p>
+                        <p class="font-bold">${employee.sickLeave} days</p>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-lg">
+                        <p class="text-sm text-purple-700">Personal Leave</p>
+                        <p class="font-bold">${employee.personalLeave} days</p>
+                    </div>
+                    <div class="bg-yellow-50 p-3 rounded-lg">
+                        <p class="text-sm text-yellow-700">Half Leave</p>
+                        <p class="font-bold">${employee.halfLeave} days</p>
+                    </div>
+                    <div class="bg-green-50 p-3 rounded-lg">
+                        <p class="text-sm text-green-700">Overtime</p>
+                        <p class="font-bold">${employee.overtime} hours</p>
+                    </div>
+                    <div class="bg-gray-100 p-3 rounded-lg">
+                        <p class="text-sm text-gray-700">Unpaid Leave</p>
+                        <p class="font-bold">${employee.unpaidLeave} days</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('employeeDetail').classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('leaveForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const leaveEmployeeId = document.getElementById('leaveEmployeeId').value.trim();
+        const leaveEmployeeName = document.getElementById('leaveEmployeeName').value.trim();
+        const leaveDate = document.getElementById('leaveDate').value;
+        const leaveType = document.getElementById('leaveType').value;
+
+        const employee = employees.find(emp => emp.id === leaveEmployeeId && emp.name === leaveEmployeeName);
+        if (!employee) {
+            alert('Employee not found!');
+            return;
+        }
+
+        switch (leaveType) {
+            case 'sick':
+                employee.sickLeave++;
+                employee.totalLeave--;
+                break;
+            case 'casual':
+                employee.casualLeave++;
+                employee.totalLeave--;
+                break;
+            case 'personal':
+                employee.personalLeave++;
+                employee.totalLeave--;
+                break;
+            case 'half':
+                employee.halfLeave++;
+                employee.totalLeave -= 0.5;
+                break;
+            case 'overtime':
+                employee.overtime += 1;
+                employee.totalLeave++;
+                break;
+            case 'unpaid':
+                employee.unpaidLeave++;
+                employee.totalLeave--;
+                break;
+            default:
+                alert('Invalid leave type!');
+                return;
+        }
+
+        showToast('Leave request submitted successfully!');
+        this.reset();
+        updateEmployeeProfile(employee);
+    });
+
+    function updateEmployeeProfile(employee) {
+        const profilesContainer = document.getElementById('employeeProfiles');
+        const profileDiv = Array.from(profilesContainer.children).find(div => div.querySelector('h3').textContent.includes(employee.id));
+        if (profileDiv) {
+            profileDiv.innerHTML = `
+                <h3 class="font-bold">${employee.name} (ID: ${employee.id})</h3>
+                <p>Department: ${employee.department}</p>
+                <button class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition" onclick="showEmployeeDetail('${employee.id}')">View Details</button>
+            `;
+        }
+    }
+
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+</script>
+</body>
+</html>

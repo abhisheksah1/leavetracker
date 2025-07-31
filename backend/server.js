@@ -13,7 +13,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Enable CORS (allow requests from any origin - good for development)
-app.use(cors());
+app.use(cors({
+  origin: "https://leavetracker1.onrender.com/"
+}));
 
 // Middleware to parse JSON bodies
 app.use(express.json());

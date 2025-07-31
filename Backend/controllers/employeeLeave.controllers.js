@@ -14,14 +14,12 @@ export const applyLeave = async (req, res) => {
       leaveTo
     } = req.body;
 
-    // Step 1: Match employee ID and name
     const employee = await Employee.findOne({ employeeId, employeeName });
 
     if (!employee) {
       return res.status(404).json({ message: 'Employee not found or details do not match' });
     }
 
-    // Step 2: Validate and prepare leave data
     const leaveData = {
       employeeId,
       employeeName,
@@ -29,22 +27,27 @@ export const applyLeave = async (req, res) => {
       leaveMode,
     };
 
+    let leaveDays = 0;
+
     if (leaveMode === 'Single') {
       if (!leaveDate) {
         return res.status(400).json({ message: 'Leave date is required for single day leave' });
       }
       leaveData.leaveDate = leaveDate;
+      leaveDays = 1; // Single day leave
     } else if (leaveMode === 'Multiple') {
       if (!leaveFrom || !leaveTo) {
         return res.status(400).json({ message: 'Both start and end dates are required for multiple day leave' });
       }
       leaveData.leaveFrom = leaveFrom;
       leaveData.leaveTo = leaveTo;
+      leaveDays = (new Date(leaveTo) - new Date(leaveFrom)) / (1000 * 60 * 60 * 24) + 1; // Calculate total days
     } else {
       return res.status(400).json({ message: 'Invalid leave mode selected' });
     }
 
-    // Step 3: Save to Leave database
+    leaveData.leaveDays = leaveDays; // Add leaveDays to leaveData
+
     const newLeave = new Leave(leaveData);
     await newLeave.save();
 
@@ -58,7 +61,6 @@ export const applyLeave = async (req, res) => {
   }
 };
 
-
 export const getLeavesByEmployee = async (req, res) => {
   try {
     const { employeeId } = req.query;
@@ -69,63 +71,93 @@ export const getLeavesByEmployee = async (req, res) => {
 
     const leaves = await Leave.find({ employeeId });
 
-    // Initialize summary object
-    const summary = leaves.reduce((acc, leave) => {
-      // Extract days and hours from each leave record
-      const days = leave.leaveDays || 0;
-      const hours = leave.leaveHours || 0;
-
-      // Add to specific leave type counters
-      switch (leave.leaveType) {
-        case 'Casual':
-          acc.casualLeave += days;
-          break;
-        case 'Sick':
-          acc.sickLeave += days;
-          break;
-        case 'Personal':
-          acc.personalLeave += days;
-          break;
-        case 'Half':
-          // Count half leave as half days (for counting individual half leaves)
-          acc.halfLeave += days; 
-          break;
-        case 'Overtime':
-          acc.overtime += days;
-          break;
-        case 'Unpaid':
-          acc.unpaidLeave += days;
-          break;
-      }
-
-      return acc;
-    }, {
+    const summary = {
       casualLeave: 0,
       sickLeave: 0,
       personalLeave: 0,
       halfLeave: 0,
-      overtime: 0,
       unpaidLeave: 0,
+      overtime: 0,
+    };
+
+    leaves.forEach((leave) => {
+      let days = 0;
+      const leaveMode = leave.leaveMode?.toLowerCase().trim();
+      let type = leave.leaveType?.toLowerCase().trim();
+
+      // Normalize halfday to half
+      if (type === 'halfday') {
+        type = 'half';
+      }
+
+      // Calculate days based on leave mode
+      if (leave.leaveDays !== undefined) {
+        // Use leaveDays if provided explicitly
+        days = leave.leaveDays;
+      } else if (leaveMode === 'single') {
+        days = 1;
+      } else if (leaveMode === 'half') {
+        days = 0.5;
+      } else if (leaveMode === 'multiple') {
+        // Calculate difference between leaveFrom and leaveTo (inclusive)
+        const fromDate = new Date(leave.leaveFrom);
+        const toDate = new Date(leave.leaveTo);
+        if (!isNaN(fromDate) && !isNaN(toDate)) {
+          days = Math.floor((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1;
+        }
+      }
+
+      // Override days if leave type is half
+      if (type === 'half') {
+        days = 0.5;
+      }
+
+      // Add days to corresponding leave type summary
+      switch (type) {
+        case 'casual':
+          summary.casualLeave += days;
+          break;
+        case 'sick':
+          summary.sickLeave += days;
+          break;
+        case 'personal':
+          summary.personalLeave += days;
+          break;
+        case 'half':
+          summary.halfLeave += days;
+          break;
+        case 'unpaid':
+          summary.unpaidLeave += days;
+          break;
+        case 'overtime':
+          summary.overtime += days;
+          break;
+        default:
+          break;
+      }
     });
 
-    // Calculate totalLeave:
-    // totalLeave = sum of all leave days except halfLeave, plus overtime converted to days,
-    // subtract halfLeave counted as 0.5 days each (assuming each halfLeave record represents 1 day but half leave counts as 0.5)
-    const totalLeave =
+    const totalAllowed = 14;
+    const totalTaken =
       summary.casualLeave +
       summary.sickLeave +
       summary.personalLeave +
       summary.unpaidLeave +
-      (summary.overtime / 8) -    // convert overtime hours to days (8 hours = 1 day)
-      (summary.halfLeave * 0.5);  // subtract half leaves as half days each
+      summary.halfLeave;
 
-    // Add totalLeave to summary object
-    summary.totalLeave = totalLeave;
+    // Allow leaveBalance to be negative if totalTaken exceeds totalAllowed
+    const leaveBalance = totalAllowed - totalTaken + summary.overtime;
 
-    res.status(200).json({ leaves, summary });
+    res.status(200).json({
+      leaves,
+      summary: {
+        ...summary,
+        totalLeave: totalTaken,
+        leaveBalance,
+      },
+    });
   } catch (error) {
     console.error('Error fetching leaves:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
-

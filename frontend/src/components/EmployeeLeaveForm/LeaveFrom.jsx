@@ -1,9 +1,11 @@
+// LeaveForm.jsx
 import React, { useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import './LeaveForm.css'
+import './LeaveFormPopup.css'; // reuse your modal styling
 
 const LeaveForm = () => {
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     employeeId: '',
     employeeName: '',
@@ -65,98 +67,68 @@ const LeaveForm = () => {
         leaveFrom: '',
         leaveTo: '',
       });
+      setShowForm(false); // close modal
     } catch (err) {
       toast.error(err.message);
     }
   };
 
   return (
-    <div className="leave-form-container">
-      <h2>Apply for Leave</h2>
-      <form onSubmit={handleSubmit} className="leave-form">
-        <label>
-          Employee ID
-          <input
-            type="text"
-            name="employeeId"
-            value={form.employeeId}
-            onChange={handleChange}
-            placeholder="Enter Employee ID"
-            required
-          />
-        </label>
+    <div className="popup-wrapper">
+      <button className="open-button" onClick={() => setShowForm(true)}>➕ Leave Form</button>
 
-        <label>
-          Employee Name
-          <input
-            type="text"
-            name="employeeName"
-            value={form.employeeName}
-            onChange={handleChange}
-            placeholder="Enter Employee Name"
-            required
-          />
-        </label>
-
-        <label>
-          Leave Mode
-          <select name="leaveMode" value={form.leaveMode} onChange={handleChange}>
-            <option value="Single">Single Day</option>
-            <option value="Multiple">Multiple Days</option>
-          </select>
-        </label>
-
-        {form.leaveMode === 'Single' ? (
-          <label>
-            Leave Date
-            <input
-              type="date"
-              name="leaveDate"
-              value={form.leaveDate}
-              onChange={handleChange}
-              required={form.leaveMode === 'Single'}
-            />
-          </label>
-        ) : (
-          <>
-            <label>
-              Leave From
-              <input
-                type="date"
-                name="leaveFrom"
-                value={form.leaveFrom}
-                onChange={handleChange}
-                required={form.leaveMode === 'Multiple'}
-              />
-            </label>
-
-            <label>
-              Leave To
-              <input
-                type="date"
-                name="leaveTo"
-                value={form.leaveTo}
-                onChange={handleChange}
-                required={form.leaveMode === 'Multiple'}
-              />
-            </label>
-          </>
-        )}
-
-        <label>
-          Leave Type
-          <select name="leaveType" value={form.leaveType} onChange={handleChange}>
-            {['Casual', 'Personal', 'Sick', 'Halfday', 'Overtime', 'Unpaid'].map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </label>
-
-        <button type="submit">Apply Leave</button>
-      </form>
-
-      {/* Toast Container to show notifications */}
-      <ToastContainer position="top-right" autoClose={4000} />
+      {showForm && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <button className="close-button" onClick={() => setShowForm(false)}>×</button>
+            <h2>Apply for Leave</h2>
+            <form onSubmit={handleSubmit} className="leave-form">
+              <label>
+                Employee ID
+                <input type="text" name="employeeId" value={form.employeeId} onChange={handleChange} required />
+              </label>
+              <label>
+                Employee Name
+                <input type="text" name="employeeName" value={form.employeeName} onChange={handleChange} required />
+              </label>
+              <label>
+                Leave Mode
+                <select name="leaveMode" value={form.leaveMode} onChange={handleChange}>
+                  <option value="Single">Single Day</option>
+                  <option value="Multiple">Multiple Days</option>
+                </select>
+              </label>
+              {form.leaveMode === 'Single' ? (
+                <label>
+                  Leave Date
+                  <input type="date" name="leaveDate" value={form.leaveDate} onChange={handleChange} />
+                </label>
+              ) : (
+                <>
+                  <label>
+                    Leave From
+                    <input type="date" name="leaveFrom" value={form.leaveFrom} onChange={handleChange} />
+                  </label>
+                  <label>
+                    Leave To
+                    <input type="date" name="leaveTo" value={form.leaveTo} onChange={handleChange} />
+                  </label>
+                </>
+              )}
+              <label>
+                Leave Type
+                <select name="leaveType" value={form.leaveType} onChange={handleChange}>
+                  {['Casual', 'Personal', 'Sick', 'Halfday', 'Overtime', 'Unpaid'].map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit">Apply Leave</button>
+            </form>
+            <ToastContainer position="top-right" autoClose={4000} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

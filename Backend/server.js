@@ -25,13 +25,7 @@ connectDB();
 app.use('/api/employees', employeeRoutes);
 app.use('/api/leaves', employeeLeaveRoutes);
 
-<<<<<<< HEAD
 
-
-// Basic route
-=======
-/// Basic route
->>>>>>> 6dbdc48 (WIP: commit before pulling)
 app.get('/', (req, res) => {
   res.send('Backend connected to MongoDB Atlas!');
 });

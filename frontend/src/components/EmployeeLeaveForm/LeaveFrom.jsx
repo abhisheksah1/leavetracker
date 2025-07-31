@@ -48,7 +48,7 @@ const LeaveForm = () => {
         leaveTo: form.leaveMode === 'Multiple' ? form.leaveTo : undefined,
       };
 
-      const res = await fetch('http://localhost:3000/api/leaves/apply', {
+      const res = await fetch('https://leavetracker-t06j.onrender.com/api/leaves/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

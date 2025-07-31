@@ -1,5 +1,5 @@
 import React from 'react';
-import './App.css'; // Ensure this path is correct
+
 // import LeaveDashboard from './components/LeaveDashboard/LeaveDashboard';
 import AddEmployee from './components/AddEmployee/AddEmployee';
 import ViewEmployee from './components/ViewEmployee/ViewEmployee';  

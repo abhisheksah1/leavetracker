@@ -22,7 +22,7 @@ const AddEmployee = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:3000/api/employees', {
+      const response = await fetch('https://leavetracker-t06j.onrender.com/employees', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
